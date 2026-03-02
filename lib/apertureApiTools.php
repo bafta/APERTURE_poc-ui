@@ -1,6 +1,10 @@
 <?
+// 16 bits per option
+// store as both padded bitfield and an array of encrypted 1/0s use each as most appropriate
+// padded for big additions, bool array for intersection calculations
 require_once(LIB_DIR.'/apertureClasses.php');
 require_once(LIB_DIR.'/apertureTools.php');
+require_once(LIB_DIR.'/testKeys.php');
 define('TOKEN_EXPIRY', 5); // seconds
 define('PRIVATE_KEY', 0);
 define('PUBLIC_KEY', 1);
@@ -11,7 +15,13 @@ define('PUBLIC_KEY', 1);
 function getRequestParameters() {
     $reqBody = file_get_contents('php://input');
     $reqData = json_decode(trim($reqBody), true);
+    $reqSig = '';
     $reqParams = [];
+
+    if(isset($reqData['request']) && isset($reqData['requestSignature'])) {
+        $reqSig = $reqData['requestSignature'];
+        $reqData = $reqData['request'];
+    }
 
     // Do this first so $USER_ID gets set
     if(isset($reqData['userToken'])) {
@@ -20,10 +30,11 @@ function getRequestParameters() {
         $USER_ID = $reqParams['userId'];
     }
 
+    // TODO ...Key stuff needs to be re-done, see the Transcription Request docs
     foreach($reqData as $paramName => $paramData) {
         if(substr($paramName, -3) == 'Key') {
             // Verify against master key and set from the 'key' item
-            if(substr($reqParamName, 0, 6) == 'signed')) {
+            if(substr($reqParamName, 0, 6) == 'signed') {
                 $reqParamName = substr($reqParamName, 6);
             }
             $reqParamName = lcfirst($reqParamName);
@@ -71,18 +82,19 @@ function validateUser(string $userToken): int {
         throw new ApertureException('Bad inputs', 400);
     }
 
-    $creationTime = (int)$tokenData[1];
-    if(time() - $creationTime > TOKEN_EXPIRY) {
-        throw new ApertureException('Token expired', 400);
-    }
+    // Don't validate for POC
+    //$creationTime = (int)$tokenData[1];
+    //if(time() - $creationTime > TOKEN_EXPIRY) {
+    //    throw new ApertureException('Token expired', 400);
+    //}
 
     $userId = (int)$tokenData[0];
-    $authSecret = getUserAuthSecret($userId));
+    //$authSecret = getUserAuthSecret($userId);
 
-    $checkHash = hash_hmac('sha256', "$userId;$creationTime", $authSecret);
-    if(!hash_equals($checkHash, $tokenData[2])) {
-        throw new ApertureException('Bad token signature', 400);
-    }
+    //$checkHash = hash_hmac('sha256', "$userId;$creationTime", $authSecret);
+    //if(!hash_equals($checkHash, $tokenData[2])) {
+    //    throw new ApertureException('Bad token signature', 400);
+    //}
     return $userId;
 }
 
@@ -91,30 +103,31 @@ function validateUser(string $userToken): int {
  * @return [questionIds]
  */
 function validateQuestionIds(string $qIdData): array {
-    $tokenData = explode(';', $userToken);
+    $qIdData = explode(';', $qIdData);
     if(
-        !count($tokenData) === 3 ||
-        empty($tokenData[0]) || empty($tokenData[1]) || empty($tokenData[2])
+        !count($qIdData) === 3 ||
+        empty($qIdData[0]) || empty($qIdData[1]) || empty($qIdData[2])
     ) {
         throw new ApertureException('Bad inputs', 400);
     }
 
-    $creationTime = (int)$tokenData[1];
-    if(time() - $creationTime > TOKEN_EXPIRY) {
-        throw new ApertureException('Token expired', 400);
-    }
+    // Don't bother validating while we're just in POC
+    //$creationTime = (int)$qIdData[1];
+    //if(time() - $creationTime > TOKEN_EXPIRY) {
+    //    throw new ApertureException('Token expired', 400);
+    //}
 
-    global $USER_ID;
-    $authSecret = getUserAuthSecret($USER_ID));
+    //global $USER_ID;
+    //$authSecret = getUserAuthSecret($USER_ID);
 
-    $checkHash = hash_hmac('sha256', "{$tokenData[0]};$creationTime", $authSecret);
-    if(!hash_equals($checkHash, $tokenData[2])) {
-        throw new ApertureException('Bad token signature', 400);
-    }
+    //$checkHash = hash_hmac('sha256', "{$qIdData[0]};$creationTime", $authSecret);
+    //if(!hash_equals($checkHash, $qIdData[2])) {
+    //    throw new ApertureException('Bad token signature', 400);
+    //}
 
     $questionIds = array_filter(array_map(function ($qId) {
-        return intval($qId, 10);
-    }, explode(',', $tokenData[0])));
+        return (int)$qId;
+    }, explode(',', $qIdData[0])));
     return $questionIds;
 }
 
@@ -135,7 +148,7 @@ function validateSearchCriteria($searchCriteria) {
     $checkCriteriaStr = json_encode($searchCriteria);
 
     global $USER_ID;
-    $authSecret = getUserAuthSecret($USER_ID));
+    $authSecret = getUserAuthSecret($USER_ID);
 
     $checkHash = hash_hmac('sha256', "$checkCriteriaStr;$creationTime", $authSecret);
     if(!hash_equals($checkHash, $hmac)) {
@@ -158,13 +171,15 @@ function generateUserAuthSecret(): string {
  * @return string - the user's auth secret
  */
 function getUserAuthSecret(int $userId): string {
+    global $DB;
+
     if(!$userId) {
         throw new ApertureException('Missing user id', 400);
     }
 
     static $userSecretCache = [];
     if(empty($userSecretCache[$userId])) {
-        // get from DB?
+        $userSecretCache[$userId] = $DB->getValue('SELECT secret FROM userAuthSecret WHERE userId = ?', $userId);
 
         if(empty($userSecretCache[$userId])) {
             throw new ApertureException('Could not find auth secret for user', 500);
@@ -213,28 +228,27 @@ function getMasterKey(int $type): string {
 
     static $masterKeys = [];
     if(empty($masterKeys[$type])) {
-        $privateKeyFile = DATA_DIR.'/masterKeys/private_key';
-        if(!is_readable($privateKeyFile)) {
-            throw new ApertureException('Could not open master private key file', 500);
-        }
-
-        // TODO - Do we want to store the private key base64 encoded?
-
-        $masterKeys[PRIVATE_KEY] = file_get_contents($privateKeyFile);
-        if(empty($masterKeys[PRIVATE_KEY])) {
-            throw new ApertureException('No master private key data', 500);
-        }
-
-        $masterKeys[PUBLIC_KEY] = sodium_crypto_sign_publickey_from_secretkey($masterKeys[PRIVATE_KEY]);
-        if(empty($masterKeys[PUBLIC_KEY])) {
-            $masterKeys = [];
-            throw new ApertureException('Bad master private key', 500);
-        }
+        // TODO - replace these test keys with however we're storing them for real
+        $keypairEncryptionKey = sodium_crypto_pwhash(SODIUM_CRYPTO_BOX_SECRETKEYBYTES, passphrase, salt, SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_ALG_DEFAULT);
+        $masterKeys[PRIVATE_KEY] = sodium_crypto_secretbox_open_easy(MASTER_SODIUM_KEYS['encPrivateKey'], MASTER_SODIUM_KEYS['nonce'], $keypairEncryptionKey);
+        $masterKeys[PUBLIC_KEY] = MASTER_SODIUM_KEYS['publicKey'];
     }
 
     return $masterKeys[$type];
 }
 
-function normaliseAnswers($answerData): array {
-    return AnswerArray::fromArray($answerData);
+function normaliseAnswers($allAnswerData): array {
+    $result = [];
+    foreach($allAnswerData as $answerData) {
+        $result[] = new QuestionAnswers($answerData['questionId'] ?? 0, $answerData['encAnswers'] ?? []);
+    }
+    return $result;
+}
+
+function getJSEncryptionKeyNumbers() {
+    $keyData = pal_get_encryption_key_numbers(MASTER_PAL_ENC_KEY);
+    return [
+        'n' => base64_encode($keyData['n']),
+        'g' => base64_encode($keyData['g']),
+    ];
 }

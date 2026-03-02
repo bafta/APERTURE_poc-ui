@@ -23,3 +23,28 @@ function doApi(callable $func) {
 
     return $result;
 }
+
+// MOCK just calls it on this server with no auth
+function callApi(string $apiName, string $server, array $apiData) {
+    $ch = curl_init($_SERVER['SERVER_NAME']."/api/$apiName.php");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($apiData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain']);
+
+    $curlRes = curl_exec($ch);
+    $curlErrno = curl_errno($ch);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if($curlErrno) {
+        throw new ApertureException($curlError, 500);
+    }
+
+    $response = json_decode($curlRes, true);
+    if($response === null) {
+        throw new ApertureException('Bad api response');
+    }
+
+    return $response;
+}

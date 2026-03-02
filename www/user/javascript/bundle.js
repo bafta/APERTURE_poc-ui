@@ -1,0 +1,1 @@
+/www/codebase/aperture_fe/dist/assets/bundle.js

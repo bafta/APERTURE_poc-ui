@@ -10,11 +10,11 @@ doApi(function () {
     global $USER_ID, $API_REQUEST_PARAMETERS;
 
     $answers = $API_REQUEST_PARAMETERS['answers'];
-    foreach($answers as $answer) {
-        if(in_array($answer->getQuestionId(), $API_REQUEST_PARAMETERS['validatedQuestionIds'])) {
-            saveAnswer($USER_ID, $questionId, $answer);
+    foreach($answers as $questionAnswers) {
+        if(in_array($questionAnswers->getQuestionId(), $API_REQUEST_PARAMETERS['validatedQuestionIds'])) {
+            $questionAnswers->save($USER_ID);
         }
     }
 });
 
-echo 'OK';
+echo '{status: "OK"}';

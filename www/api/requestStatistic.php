@@ -8,9 +8,9 @@ require_once(LIB_DIR.'/apertureDoApi.php');
 
 $encFreqDist = doApi(function () {
     global $API_REQUEST_PARAMETERS;
-    $userIds = serverApi('lookupCohort', ['searchCriteria' => $API_REQUEST_PARAMETERS['searchCriteria']]);
+    $userIds = callApi('lookupCohort', 'userServer', ['searchCriteria' => $API_REQUEST_PARAMETERS['searchCriteria']]);
     $encryptedSum = getEncryptedSum($API_REQUEST_PARAMETERS['questionId'], $userIds);
-    $encFreqDist = serverapi('requestTranscription', [
+    $encFreqDist = callApi('requestTranscription', 'keyGuardian', [
         'requesterPaillierEncryptionKey' => $API_REQUEST_PARAMETERS['requesterPaillierEncryptionKey'],
         'encryptedSum' => $encryptedSum,
     ]);
