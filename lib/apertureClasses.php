@@ -1,9 +1,11 @@
 <?
+require_once(LIB_DIR.'/apertureTools.php');
+
 class ApertureException extends Exception {};
 
 class EncryptedAnswer {
     private int $optionNum;
-    private string $encAnswer;
+    private string $rawEncAnswer; // Raw binary string
 
     function __construct(?int $optionNum, ?string $encAnswer) {
         if($optionNum === null || empty($encAnswer)) {
@@ -11,21 +13,32 @@ class EncryptedAnswer {
         }
 
         $this->optionNum = $optionNum;
-        $decodedAnswer = base64_decode($encAnswer, true);
-        // If we got something other than false back then it was a base64 encoded encrypted answer
-        $this->encAnswer = $decodedAnswer ?: $encAnswer;
+        $this->rawEncAnswer = strToBin($encAnswer);
     }
 
     public function getOptionNum(): int {
         return $this->optionNum;
     }
 
+    /**
+     * @return The raw answer encoded as a base36 string, suitable to pass to the pal_* extension functions
+     */
     public function getAnswer(): string {
-        return $this->encAnswer;
+        return gmp_strval(gmp_import($this->rawEncAnswer), 36);
     }
 
+    /**
+     * @return The answer as a binary string
+     */
+    public function getRawEncAnswer(): string {
+        return $this->rawEncAnswer;
+    }
+
+    /**
+     * @return The answer as a base64 encoded string
+     */
     public function getBase64Answer(): string {
-        return base64_encode($this->encAnswer);
+        return base64_encode($this->rawEncAnswer);
     }
 }
 
@@ -87,6 +100,14 @@ class QuestionAnswers {
         }
         $packedAnswer = pal_add_array(MASTER_PAL_ENC_KEY, $shiftedAnswers);
 
+        global $LOGGER;
+        $LOGGER->log("Decrypting packed answer\n$packedAnswer");
+        $decPacked = pal_decrypt(MASTER_PAL_DEC_KEY, $packedAnswer);
+        $LOGGER->log("Got $decPacked");
+        $intPacked = gmp_init($decPacked, 36);
+        $intPacked = gmp_intval($intPacked);
+        $LOGGER->log("Which is $intPacked\n\n");
+
         $this->encAnswers[] = new EncryptedAnswer(0, $packedAnswer);
     }
 
@@ -101,7 +122,7 @@ class QuestionAnswers {
                 INSERT INTO answer (userId, questionId, optionNum, answer)
                 VALUES (?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE answer = ?
-            ', $userId, $this->questionId, $encAnswer->getOptionNum(), $encAnswer->getBase64Answer(), $encAnswer->getBase64Answer());
+            ', $userId, $this->questionId, $encAnswer->getOptionNum(), $encAnswer->getAnswer(), $encAnswer->getAnswer());
         }
     }
 }

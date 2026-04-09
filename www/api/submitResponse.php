@@ -17,4 +17,6 @@ doApi(function () {
     }
 });
 
-echo '{status: "OK"}';
+echo json_encode([
+    'status' => 'OK',
+]);

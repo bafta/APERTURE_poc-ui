@@ -247,8 +247,10 @@ function normaliseAnswers($allAnswerData): array {
 
 function getJSEncryptionKeyNumbers() {
     $keyData = pal_get_encryption_key_numbers(MASTER_PAL_ENC_KEY);
+    // Extension returns all big values as base36 encoded (due to fast_paillier lib)
+    // Front end needs them base64 encoded
     return [
-        'n' => base64_encode($keyData['n']),
-        'g' => base64_encode($keyData['g']),
+        'n' => base64_encode(gmp_export(gmp_init($keyData['n'], 36))),
+        'g' => base64_encode(gmp_export(gmp_init($keyData['g'], 36))),
     ];
 }
