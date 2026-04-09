@@ -1,1 +1,1 @@
-/www/codebase/aperture_fe/dist/assets/bundle.js
+../../../lib/fe/dist/assets/bundle.js
