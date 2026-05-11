@@ -31,7 +31,7 @@ function getRequestParameters() {
     }
 
     // TODO ...Key stuff needs to be re-done, see the Transcription Request docs
-    foreach($reqData as $paramName => $paramData) {
+    foreach(($reqData ?? []) as $paramName => $paramData) {
         if(substr($paramName, -3) == 'Key') {
             // Verify against master key and set from the 'key' item
             if(substr($reqParamName, 0, 6) == 'signed') {
@@ -232,7 +232,7 @@ function getMasterKey(int $type): string {
     if(empty($masterKeys[$type])) {
         // TODO - replace these test keys with however we're storing them for real
         $keypairEncryptionKey = sodium_crypto_pwhash(SODIUM_CRYPTO_BOX_SECRETKEYBYTES, passphrase, salt, SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_ALG_DEFAULT);
-        $masterKeys[PRIVATE_KEY] = sodium_crypto_secretbox_open_easy(MASTER_SODIUM_KEYS['encPrivateKey'], MASTER_SODIUM_KEYS['nonce'], $keypairEncryptionKey);
+        $masterKeys[PRIVATE_KEY] = sodium_crypto_secretbox_open(MASTER_SODIUM_KEYS['encPrivateKey'], MASTER_SODIUM_KEYS['nonce'], $keypairEncryptionKey);
         $masterKeys[PUBLIC_KEY] = MASTER_SODIUM_KEYS['publicKey'];
     }
 

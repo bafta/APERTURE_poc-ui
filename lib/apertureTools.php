@@ -11,7 +11,11 @@ define('MAX_ANSWER_SHIFTS', (int)(((PHP_INT_SIZE * 8) - 1) / BITS_PER_ANSWER));
  * @return binary string
  */
 function strToBin($numStr) {
-    $wasB36Answer = gmp_init($numStr, 36);
+    try {
+        $wasB36Answer = gmp_init($numStr, 36);
+    } catch (ValueError) {
+        $wasB36Answer = false;
+    }
     if($wasB36Answer) { // from one of the pal_* functions
         $binsryStr = gmp_export($wasB36Answer);
     } else {
