@@ -6,12 +6,13 @@ This is achieved using [Paillier homomorphic encryption](https://en.wikipedia.or
 
 ## How It Works
 
-1. The user's browser generates a Paillier keypair locally
-2. Each survey answer (0 or 1 per option) is encrypted client-side before submission
+1. The server provides the master Paillier public key to the browser
+2. Each survey answer (0 or 1 per option) is encrypted client-side with this key before submission
 3. The server stores only ciphertexts — it never sees plaintext answers
-4. When statistics are requested, the server homomorphically sums the ciphertexts for a given cohort
-5. A Key Guardian service decrypts the sum, extracts the frequency distribution, and re-encrypts it with the requester's public key
-6. Only the requester can decrypt the result
+4. When results are requested, the server homomorphically sums the ciphertexts across respondents
+5. The sum is decrypted with the master private key and the packed frequency distribution is extracted
+
+In a production deployment, the private key would be held by a separate Key Guardian service that re-encrypts results with the requester's own public key — but in this POC, decryption happens directly on the server using test keys.
 
 ## Architecture
 
