@@ -118,25 +118,75 @@ $isBrandNewDatabase = $DB->getValue('SELECT COUNT(*) FROM migration') == 0;
 $upgrades = ($upgrades ?? []) + [
     202603041924 => function() use($DB, $isBrandNewDatabase) {
         $DB->exec('
-            INSERT INTO question (id, question, type)
-            VALUES
-                (1, "What pets do you have?", "checkbox"),
-                (2, "What\'s your favourite food?", "radio")
+            INSERT INTO question (id, question, type) VALUES
+                (1, "What is your age group?", "radio"),
+                (2, "What is your gender identity?", "radio"),
+                (3, "What is your ethnic group?", "radio"),
+                (4, "Do you consider yourself to have a disability?", "radio"),
+                (5, "What is your sexual orientation?", "radio"),
+                (6, "What is your religion or belief?", "radio"),
+                (7, "Do you have any caring responsibilities?", "checkbox"),
+                (8, "What best describes the occupation of your main household earner when you were aged 14?", "radio")
         ');
         $DB->exec('
-            INSERT INTO option (questionId, num, option)
-            VALUES
-                (1, 1, "Dog"),
-                (1, 2, "Cat"),
-                (1, 3, "Guinea Pig"),
-                (1, 4, "Rat"),
-                (1, 5, "Fish"),
-                (2, 1, "Fish and Chips"),
-                (2, 2, "Chinese"),
-                (2, 3, "Pizza"),
-                (2, 4, "Burger"),
-                (2, 5, "Roast Dinner"),
-                (2, 6, "Falafel")
+            INSERT INTO option (questionId, num, option) VALUES
+                (1, 1, "Under 18"),
+                (1, 2, "18–24"),
+                (1, 3, "25–34"),
+                (1, 4, "35–44"),
+                (1, 5, "45–54"),
+                (1, 6, "55–64"),
+                (1, 7, "65 or over"),
+                (1, 8, "Prefer not to say"),
+
+                (2, 1, "Man"),
+                (2, 2, "Woman"),
+                (2, 3, "Non-binary"),
+                (2, 4, "Prefer to self-describe"),
+                (2, 5, "Prefer not to say"),
+
+                (3, 1, "White"),
+                (3, 2, "Mixed or multiple ethnic groups"),
+                (3, 3, "Asian or Asian British"),
+                (3, 4, "Black, African, Caribbean or Black British"),
+                (3, 5, "Other ethnic group"),
+                (3, 6, "Prefer not to say"),
+
+                (4, 1, "Yes"),
+                (4, 2, "No"),
+                (4, 3, "Prefer not to say"),
+
+                (5, 1, "Heterosexual / straight"),
+                (5, 2, "Gay or lesbian"),
+                (5, 3, "Bisexual"),
+                (5, 4, "Other"),
+                (5, 5, "Prefer not to say"),
+
+                (6, 1, "No religion"),
+                (6, 2, "Christian"),
+                (6, 3, "Muslim"),
+                (6, 4, "Hindu"),
+                (6, 5, "Jewish"),
+                (6, 6, "Sikh"),
+                (6, 7, "Buddhist"),
+                (6, 8, "Other"),
+                (6, 9, "Prefer not to say"),
+
+                (7, 1, "Primary carer of a child or children under 18"),
+                (7, 2, "Primary carer of a disabled adult (18 or over)"),
+                (7, 3, "Primary carer of an older person"),
+                (7, 4, "Secondary carer"),
+                (7, 5, "No caring responsibilities"),
+                (7, 6, "Prefer not to say"),
+
+                (8, 1, "Modern professional or senior manager"),
+                (8, 2, "Clerical or intermediate"),
+                (8, 3, "Technical or craft"),
+                (8, 4, "Routine, semi-routine or manual"),
+                (8, 5, "Long-term unemployed"),
+                (8, 6, "Retired"),
+                (8, 7, "Not applicable"),
+                (8, 8, "Prefer not to say")
         ');
     },
 ];
