@@ -1,8 +1,10 @@
-# Aperture POC
+# APERTURE - Proof of Concept User Interface
 
 A proof-of-concept privacy-preserving survey platform. Users submit encrypted responses to questions, and the system computes aggregate statistics across responses — without the server ever decrypting any individual answer.
 
 This is achieved using [Paillier homomorphic encryption](https://en.wikipedia.org/wiki/Paillier_cryptosystem), which allows ciphertexts to be summed directly. Only the final aggregate is decrypted, and only by a dedicated Key Guardian service that re-encrypts the result with the requester's own public key.
+
+This repository is part of the [BFI-funded APERTURE project](https://github.com/bafta/APERTURE).
 
 ## How It Works
 
