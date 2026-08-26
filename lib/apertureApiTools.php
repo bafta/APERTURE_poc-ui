@@ -22,6 +22,10 @@ function getRequestParameters() {
         $USER_ID = $reqParams['userId'];
     }
 
+    // Allowlist: only explicitly-handled input names produce entries in
+    // $reqParams. Unknown names are dropped rather than copied through, so a
+    // client cannot inject a post-validation key (e.g. 'validatedQuestionIds'
+    // or 'userId') straight into the trusted namespace and bypass its validator.
     foreach(($reqData ?? []) as $paramName => $paramData) {
         if($paramName == 'questionIds') {
             $reqParams['validatedQuestionIds'] = validateQuestionIds($paramData);
@@ -31,9 +35,8 @@ function getRequestParameters() {
             $reqParams['answers'] = normaliseAnswers($paramData);
         } else if($paramName == 'userToken') {
             // Already done above
-        } else {
-            $reqParams[$paramName] = $paramData;
         }
+        // else: unrecognised param — ignored
     }
 
     global $EXPECTED_API_REQUEST_PARAMETERS;
