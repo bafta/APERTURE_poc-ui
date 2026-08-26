@@ -18,16 +18,17 @@ define('MAX_QUESTIONS', 128);
  * @return binary string
  */
 function strToBin($numStr) {
-    try {
-        $wasB36Answer = gmp_init($numStr, 36);
-    } catch (ValueError) {
-        $wasB36Answer = false;
-    }
-    // Must compare against false, not truthiness: a GMP zero is falsy, and
-    // gmp_export(0) is an empty string, so zero needs an explicit "\0" byte
-    // or gmp_import() would re-import the character '0' as its ASCII value 48
-    if($wasB36Answer !== false) { // from one of the pal_* functions
-        $binsryStr = gmp_export($wasB36Answer);
+    // The pal_* extension and gmp_strval(...,36) only ever emit lowercase base36
+    // ([0-9a-z], with an optional leading '-'). Restricting the base36 branch to
+    // that charset stops a standard-base64 ciphertext from the front end (which
+    // uses upper-case letters, '+', '/' and '=') from being misread as base36 and
+    // silently corrupted. (A base64 value made up purely of [0-9a-z] would still
+    // collide, but that is astronomically unlikely for a real ciphertext.)
+    if(is_string($numStr) && preg_match('/^-?[0-9a-z]+$/', $numStr)) { // from one of the pal_* functions
+        // Compare via the charset test above, not truthiness: a GMP zero is
+        // falsy, and gmp_export(0) is an empty string, so zero needs an explicit
+        // "\0" byte or gmp_import() would re-import '0' as its ASCII value 48.
+        $binsryStr = gmp_export(gmp_init($numStr, 36));
         if($binsryStr === '') {
             $binsryStr = "\0";
         }
