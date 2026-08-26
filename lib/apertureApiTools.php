@@ -40,27 +40,48 @@ function getRequestParameters() {
     }
 
     global $EXPECTED_API_REQUEST_PARAMETERS;
-    $missingParams = [];
     if(is_array($EXPECTED_API_REQUEST_PARAMETERS) && !empty($EXPECTED_API_REQUEST_PARAMETERS)) {
+        $missingParams = [];
         foreach($EXPECTED_API_REQUEST_PARAMETERS as $earp) {
             if(empty($reqParams[$earp])) {
                 $missingParams[] = $earp;
             }
         }
+        if(!empty($missingParams)) {
+            throw new ApertureException('Missing required parameters: '.implode(', ', $missingParams), 400);
+        }
     }
-    $reqParams['__missing'] = $missingParams;
 
     return $reqParams;
 }
 
 global $API_REQUEST_PARAMETERS;
-$API_REQUEST_PARAMETERS = getRequestParameters();
+// Parse at include time. Any failure here (a validator rejecting bad input, a
+// missing required param, or a malformed body tripping a type error) is turned
+// into a controlled HTTP response rather than escaping as an uncaught fatal —
+// which would be a 500 and, with display_errors on, could disclose paths.
+try {
+    $API_REQUEST_PARAMETERS = getRequestParameters();
+} catch (ApertureException $aex) {
+    $code = $aex->getCode();
+    $is4xx = ($code >= 400 && $code <= 499);
+    http_response_code($is4xx ? $code : 500);
+    echo json_encode(['error' => $is4xx ? $aex->getMessage() : 'Server error']);
+    exit;
+} catch (\Throwable $t) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Bad request']);
+    exit;
+}
 
 /**
  * @param $userToken string "userId;createTime;HMAC"
  * @return userId
  */
-function validateUser(string $userToken): int {
+function validateUser($userToken): int {
+    if(!is_string($userToken)) {
+        throw new ApertureException('Bad inputs', 400);
+    }
     $tokenData = explode(';', $userToken);
     if(
         count($tokenData) !== 3 ||
@@ -89,7 +110,10 @@ function validateUser(string $userToken): int {
  * @param $qIdData string "comma-separated-ids;createTime;HMAC"
  * @return [questionIds]
  */
-function validateQuestionIds(string $qIdData): array {
+function validateQuestionIds($qIdData): array {
+    if(!is_string($qIdData)) {
+        throw new ApertureException('Bad inputs', 400);
+    }
     $qIdData = explode(';', $qIdData);
     if(
         count($qIdData) !== 3 ||
