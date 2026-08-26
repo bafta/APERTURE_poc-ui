@@ -70,4 +70,5 @@ Several security checks are intentionally disabled for POC simplicity — noted 
 - Token expiry checking is disabled
 - Question ID signature verification is disabled
 - Request/key signing with the master libsodium keypair is designed but not implemented (the signing keypair in `testKeys.php` currently has no consumer)
+- Submitted answers are not range-proven to be 0/1 — a dishonest client (which holds the public key) can encrypt arbitrary values and skew the aggregate; preventing this needs client zero-knowledge range/ballot proofs, out of scope for the POC (no server-only fix exists, as the server never sees plaintext)
 - Master Paillier keys come from a test file (`testKeys.php`), not secure storage
