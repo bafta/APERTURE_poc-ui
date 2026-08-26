@@ -2,11 +2,16 @@
     import Question from './components/Question.svelte';
     import { answers, encProgress, saveProgress, unanswered, setEncKey, setUserId, fillRandom, validate, saveAnswers } from './stores/answers.svelte';
 
-    setEncKey(publicKeyData.n, publicKeyData.g);
-
     let userId = $state(0);
     let saving = $state(false);
     let submitted = $state(false);
+    let keyError = $state(null);
+
+    try {
+        setEncKey(publicKeyData.n, publicKeyData.g);
+    } catch {
+        keyError = 'This questionnaire could not be initialised: the encryption key is missing or invalid.';
+    }
 
     async function handleSave() {
         if (!validate()) {
@@ -20,6 +25,8 @@
         try {
             const ok = await saveAnswers();
             if (ok) submitted = true;
+        } catch {
+            window.alert('Something went wrong submitting your answers. Please try again.');
         } finally {
             saving = false;
         }
@@ -46,7 +53,13 @@
     }
 </script>
 
-{#if submitted}
+{#if keyError}
+<div class="page-body">
+    <div class="card">
+        <div class="empty-state">{keyError}</div>
+    </div>
+</div>
+{:else if submitted}
 <div class="page-body">
     <div class="card thank-you-card">
         <div class="thank-you-icon">
