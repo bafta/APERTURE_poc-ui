@@ -16,8 +16,14 @@ function strToBin($numStr) {
     } catch (ValueError) {
         $wasB36Answer = false;
     }
-    if($wasB36Answer) { // from one of the pal_* functions
+    // Must compare against false, not truthiness: a GMP zero is falsy, and
+    // gmp_export(0) is an empty string, so zero needs an explicit "\0" byte
+    // or gmp_import() would re-import the character '0' as its ASCII value 48
+    if($wasB36Answer !== false) { // from one of the pal_* functions
         $binsryStr = gmp_export($wasB36Answer);
+        if($binsryStr === '') {
+            $binsryStr = "\0";
+        }
     } else {
         $wasB64Answer = base64_decode($numStr, true);
         if($wasB64Answer) { // from the front end
