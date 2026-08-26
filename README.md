@@ -120,6 +120,7 @@ Both scripts are interactive (press Enter to advance) and require `lib/testKeys.
 This is a proof of concept. Several production concerns are intentionally simplified:
 
 - User token HMAC verification and expiry checking are disabled
+- Request and key signing (libsodium signatures over requester keys and request bodies, verified against the master signing key) is designed but not implemented — API inputs are trusted as-is
 - Master Paillier keys are loaded from a test file rather than secure storage
 - Only the Data Server service is implemented; the User Server and Key Guardian are design-only, so decryption happens in the same codebase that stores the ciphertexts
 - Error responses are generic

@@ -6,8 +6,6 @@ require_once(LIB_DIR.'/apertureClasses.php');
 require_once(LIB_DIR.'/apertureTools.php');
 require_once(LIB_DIR.'/testKeys.php');
 define('TOKEN_EXPIRY', 5); // seconds
-define('PRIVATE_KEY', 0);
-define('PUBLIC_KEY', 1);
 
 
 // For now, return 400 errors for anything that was probably the user's fault and 500 for anything that was ours
@@ -15,13 +13,7 @@ define('PUBLIC_KEY', 1);
 function getRequestParameters() {
     $reqBody = file_get_contents('php://input');
     $reqData = json_decode(trim($reqBody), true);
-    $reqSig = '';
     $reqParams = [];
-
-    if(isset($reqData['request']) && isset($reqData['requestSignature'])) {
-        $reqSig = $reqData['requestSignature'];
-        $reqData = $reqData['request'];
-    }
 
     // Do this first so $USER_ID gets set
     if(isset($reqData['userToken'])) {
@@ -30,16 +22,8 @@ function getRequestParameters() {
         $USER_ID = $reqParams['userId'];
     }
 
-    // TODO ...Key stuff needs to be re-done, see the Transcription Request docs
     foreach(($reqData ?? []) as $paramName => $paramData) {
-        if(substr($paramName, -3) == 'Key') {
-            // Verify against master key and set from the 'key' item
-            if(substr($reqParamName, 0, 6) == 'signed') {
-                $reqParamName = substr($reqParamName, 6);
-            }
-            $reqParamName = lcfirst($reqParamName);
-            $reqParams[$reqParamName] = validateKey($paramData);
-        } else if($paramName == 'questionIds') {
+        if($paramName == 'questionIds') {
             $reqParams['validatedQuestionIds'] = validateQuestionIds($paramData);
         } else if($paramName == 'searchCriteria') {
             $reqParams['searchCriteria'] = validateSearchCriteria($paramData);
@@ -181,54 +165,6 @@ function getUserAuthSecret(int $userId): string {
     }
 
     return $userSecretCache[$userId];
-}
-
-/**
- * @param $keyData [
- *     'key' => base64 encoded key,
- *     'signature' => the base64 key signed by the master public key
- * ]
- * @return the binary (not base64) key|null
- */
-function validateKey(array $keyData): string {
-    global $DB;
-    if(empty($keyData['key']) || empty($keyData['signature'])) {
-        throw new ApertureException('Missing key data', 400);
-    }
-
-    $rawKey = sodium_base642bin($keyData['key'], SODIUM_BASE64_VARIANT_ORIGINAL);
-    if(empty($rawKey)) {
-        throw new ApertureException('Bad encoded key', 400);
-    }
-
-    $masterPublicKey = getMasterKey(PUBLIC_KEY);
-    if(!sodium_crypto_sign_verify_detached($keyData['signature'], $keyData['key'], $masterPublicKey)) {
-        throw new ApertureException('Bad signature', 400);
-    }
-
-    return $rawKey;
-}
-
-/**
- * Return one of the libsodium master keys
- * @param $type PRIVATE_KEY | PUBLIC_KEY
- * @return string the binary private or public master key
- */
-function getMasterKey(int $type): string {
-    $type = strtoupper($type);
-    if(!in_array($type, [PRIVATE_KEY, PUBLIC_KEY], true)) {
-        throw new ApertureException('Bad key type', 500);
-    }
-
-    static $masterKeys = [];
-    if(empty($masterKeys[$type])) {
-        // TODO - replace these test keys with however we're storing them for real
-        $keypairEncryptionKey = sodium_crypto_pwhash(SODIUM_CRYPTO_BOX_SECRETKEYBYTES, passphrase, salt, SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE, SODIUM_CRYPTO_PWHASH_ALG_DEFAULT);
-        $masterKeys[PRIVATE_KEY] = sodium_crypto_secretbox_open(MASTER_SODIUM_KEYS['encPrivateKey'], MASTER_SODIUM_KEYS['nonce'], $keypairEncryptionKey);
-        $masterKeys[PUBLIC_KEY] = MASTER_SODIUM_KEYS['publicKey'];
-    }
-
-    return $masterKeys[$type];
 }
 
 function normaliseAnswers($allAnswerData): array {

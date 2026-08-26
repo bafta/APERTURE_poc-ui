@@ -53,8 +53,7 @@ Client: encrypt each answer (0 or 1) with Paillier public key
 ### Key Files
 - `lib/apertureClasses.php` — `EncryptedAnswer`, `EncryptedAnswerArray`, `QuestionAnswers` classes; packing/aggregation logic
 - `lib/apertureTools.php` — encoding utilities (`strToBin`, `toFD` frequency distribution unpacker, `getEncryptedSum`)
-- `lib/apertureApiTools.php` — request parsing, user/HMAC validation, key retrieval, JS public key export
-- `lib/apertureDoApi.php` — inter-service HTTP calls and error handling
+- `lib/apertureApiTools.php` — request parsing, user/HMAC validation, JS public key export
 - `lib/fe/src/stores/answers.svelte.js` — frontend Svelte store; handles client-side Paillier encryption and API submission
 - `lib/fe/src/components/Question.svelte` — renders individual questions with radio/checkbox inputs
 - `lib/prdl/` — PRDL framework (DB interface, auth, logging, validation — treat as stable infrastructure)
@@ -70,4 +69,5 @@ Several security checks are intentionally disabled for POC simplicity — noted 
 - User token HMAC verification is skipped
 - Token expiry checking is disabled
 - Question ID signature verification is disabled
+- Request/key signing with the master libsodium keypair is designed but not implemented (the signing keypair in `testKeys.php` currently has no consumer)
 - Master Paillier keys come from a test file (`testKeys.php`), not secure storage
