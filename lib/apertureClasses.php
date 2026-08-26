@@ -43,7 +43,7 @@ class EncryptedAnswer {
 }
 
 class EncryptedAnswerArray extends ArrayObject {
-    public function offsetSet($key, $val) {
+    public function offsetSet(mixed $key, mixed $val): void {
         if($val instanceof EncryptedAnswer) {
             parent::offsetSet($key, $val);
             return;
@@ -99,15 +99,6 @@ class QuestionAnswers {
             $shiftedAnswers[] = $shiftedAnswer;
         }
         $packedAnswer = pal_add_array(MASTER_PAL_ENC_KEY, $shiftedAnswers);
-
-        global $LOGGER;
-        $LOGGER->log("Decrypting packed answer\n$packedAnswer");
-        $decPacked = pal_decrypt(MASTER_PAL_DEC_KEY, $packedAnswer);
-        $LOGGER->log("Got $decPacked");
-        $intPacked = gmp_init($decPacked, 36);
-        $intPacked = gmp_intval($intPacked);
-        $LOGGER->log("Which is $intPacked\n\n");
-
         $this->encAnswers[] = new EncryptedAnswer(0, $packedAnswer);
     }
 
