@@ -166,6 +166,9 @@ function getUserAuthSecret(int $userId): string {
 }
 
 function normaliseAnswers($allAnswerData): array {
+    if(!is_array($allAnswerData) || count($allAnswerData) > MAX_QUESTIONS) {
+        throw new ApertureException('Too many questions', 400);
+    }
     $result = [];
     foreach($allAnswerData as $answerData) {
         $result[] = new QuestionAnswers($answerData['questionId'] ?? 0, $answerData['encAnswers'] ?? []);
