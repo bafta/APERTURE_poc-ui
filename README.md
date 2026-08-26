@@ -18,7 +18,7 @@ In a production deployment, the private key would be held by a separate Key Guar
 
 ## Architecture
 
-The system is designed as three logically separate services:
+The production system is designed as three logically separate services:
 
 | Service | Responsibility |
 |---|---|
@@ -27,6 +27,8 @@ The system is designed as three logically separate services:
 | **Key Guardian** | Holds the master private key; decrypts aggregates and re-encrypts for requesters |
 
 This separation means no single service can compromise individual responses: the Data Server has the ciphertexts but not the key, and the Key Guardian has the key but only ever sees aggregated ciphertexts.
+
+**POC note:** only the Data Server role is implemented in this codebase. The User Server and Key Guardian exist as design only — decryption currently happens directly on the server using the test keys.
 
 ### Answer Packing
 
@@ -100,10 +102,9 @@ The built `bundle.js` is symlinked into `www/user/javascript/` and served by `ww
 | Endpoint | Service | Description |
 |---|---|---|
 | `POST /api/submitResponse.php` | Data Server | Submit encrypted answers for a set of questions |
-| `GET /api/requestStatistic.php` | Data Server | Request a frequency distribution for a question over a cohort |
-| `GET /api/lookupCohort.php` | User Server | Return user IDs matching search criteria |
-| `GET /api/requestTranscription.php` | Key Guardian | Decrypt an aggregated ciphertext and re-encrypt for the requester |
 | `GET /api/testResults.php?questionId=X` | Data Server | Decrypt and return aggregate results for a question (used by the results page) |
+
+The production design also calls for `requestStatistic` (Data Server), `lookupCohort` (User Server), and `requestTranscription` (Key Guardian) endpoints; these are not yet implemented.
 
 ## Demo Scripts
 
@@ -120,5 +121,5 @@ This is a proof of concept. Several production concerns are intentionally simpli
 
 - User token HMAC verification and expiry checking are disabled
 - Master Paillier keys are loaded from a test file rather than secure storage
-- The three services run within a single codebase rather than as isolated deployments
+- Only the Data Server service is implemented; the User Server and Key Guardian are design-only, so decryption happens in the same codebase that stores the ciphertexts
 - Error responses are generic
