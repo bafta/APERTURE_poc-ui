@@ -62,7 +62,7 @@ if(!($NO_REQUEST_PARAMETERS ?? false)) {
 function validateUser(string $userToken): int {
     $tokenData = explode(';', $userToken);
     if(
-        !count($tokenData) === 3 ||
+        count($tokenData) !== 3 ||
         empty($tokenData[0]) || empty($tokenData[1]) || empty($tokenData[2])
     ) {
         throw new ApertureException('Bad inputs', 400);
@@ -91,7 +91,7 @@ function validateUser(string $userToken): int {
 function validateQuestionIds(string $qIdData): array {
     $qIdData = explode(';', $qIdData);
     if(
-        !count($qIdData) === 3 ||
+        count($qIdData) !== 3 ||
         empty($qIdData[0]) || empty($qIdData[1]) || empty($qIdData[2])
     ) {
         throw new ApertureException('Bad inputs', 400);
