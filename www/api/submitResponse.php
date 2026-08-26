@@ -4,7 +4,6 @@ $EXPECTED_API_REQUEST_PARAMETERS = [
     'validatedQuestionIds', 'answers'
 ];
 require_once('../../lib/prdl/startup.php');
-require_once(LIB_DIR.'/apertureDoApi.php');
 require_once(LIB_DIR.'/apertureApiTools.php');
 
 // Disable output buffering and enable implicit flush for streaming

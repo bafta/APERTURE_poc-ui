@@ -159,14 +159,6 @@ function validateSearchCriteria($searchCriteria) {
 }
 
 /**
- * @return string 32 random bytes, base64 encoded
- */
-function generateUserAuthSecret(): string {
-    $secretBytes = openssl_random_pseudo_bytes(32); // TODO - do we care about the $strong param?
-    return sodium_bin2base64($secretBytes, SODIUM_BASE64_VARIANT_ORIGINAL);
-}
-
-/**
  * @param $userId int
  * @return string - the user's auth secret
  */
