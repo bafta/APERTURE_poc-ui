@@ -4,6 +4,13 @@ define('ANSWER_MASK', 2**BITS_PER_ANSWER - 1);
 // Prevent the 'factor' argument to pal_multiply() overflowing
 // '-1' to discount the sign bit as all ints are signed
 define('MAX_ANSWER_SHIFTS', (int)(((PHP_INT_SIZE * 8) - 1) / BITS_PER_ANSWER));
+// The packed plaintext is a 2048-bit field of 16-bit slots, so a question can
+// hold at most 128 options. This is also the DoS bound on client-supplied
+// optionNum / answer counts (each option costs homomorphic shifts to pack).
+define('MAX_OPTIONS', 2048 / BITS_PER_ANSWER);
+// Safety cap on the number of questions accepted in one submission (a guard
+// against request-amplification DoS, not a functional limit on survey size).
+define('MAX_QUESTIONS', 128);
 
 /**
  * Convert a string encoded large number to a binary string

@@ -52,9 +52,21 @@ class EncryptedAnswerArray extends ArrayObject {
     }
 
     static function fromArray($answerData): EncryptedAnswerArray {
+        if(!is_array($answerData) || count($answerData) > MAX_OPTIONS) {
+            throw new ApertureException('Bad answer data', 400);
+        }
         $ansArray = [];
         foreach($answerData as $optAns) {
-            $ansArray[] = new EncryptedAnswer($optAns['optionNum'] ?? null, $optAns['encAnswer'] ?? null);
+            // optionNum is client-supplied and must name a real option slot (1..MAX_OPTIONS).
+            // Rejecting 0 stops a client submitting its own pre-packed aggregate — the packed
+            // row at optionNum 0 is generated server-side only (see generatePackedAnswer).
+            // The upper bound stops a huge optionNum driving the shift loop in
+            // generatePackedAnswer into an unauthenticated CPU-exhaustion DoS.
+            $optionNum = filter_var($optAns['optionNum'] ?? null, FILTER_VALIDATE_INT);
+            if($optionNum === false || $optionNum < 1 || $optionNum > MAX_OPTIONS) {
+                throw new ApertureException('Bad option number', 400);
+            }
+            $ansArray[] = new EncryptedAnswer($optionNum, $optAns['encAnswer'] ?? null);
         }
         usort($ansArray, function (EncryptedAnswer $a, EncryptedAnswer $b) { return $a->getOptionNum() <=> $b->getOptionNum(); });
         return new EncryptedAnswerArray($ansArray);
