@@ -27,18 +27,14 @@ if(!$questionId) {
         if(!empty($encRows)) {
             $numOptions = count($options);
             $totals = array_fill(0, $numOptions, 0);
+            $maxOptionNum = max(array_column($options, 'num'));
 
             foreach($encRows as $encRow) {
                 $plaintext = pal_decrypt(MASTER_PAL_DEC_KEY, $encRow['answer']);
-                // Unpack directly via gmp_init — avoids the strToBin/gmp_import
-                // roundtrip in toFD() which breaks for zero (gmp_export of 0 is
-                // an empty string, causing the '0' character to be re-imported
-                // as its ASCII value 48).
-                $packed = gmp_init($plaintext, 36);
+                $freqDist = toFD($plaintext, $maxOptionNum);
                 $values = [];
                 foreach($options as $idx => $opt) {
-                    $shift = ($opt['num'] - 1) * BITS_PER_ANSWER;
-                    $val = gmp_intval(($packed >> $shift) & ANSWER_MASK);
+                    $val = $freqDist[$opt['num']];
                     $values[] = $val;
                     $totals[$idx] += $val;
                 }
