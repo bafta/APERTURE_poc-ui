@@ -50,6 +50,14 @@ function strToBin($numStr) {
  * @param $numOptions int Stop after breaking off $numOptions options rather than do the whole 2048 bits
  */
 function toFD(string $summedAnswers, int $numOptions): array {
+    // The extension decrypts into a signed range and returns a leading '-' for
+    // negative plaintexts. A packed aggregate is an unsigned bitfield, so a
+    // negative value means the sum exceeded n/2 and wrapped — corrupt or
+    // adversarial data. strToBin's gmp_export silently drops the sign, which
+    // would then unpack as garbage, so detect it here and fail closed.
+    if(str_starts_with(ltrim($summedAnswers), '-')) {
+        throw new RuntimeException('Packed aggregate out of range');
+    }
     $summedAnswers = gmp_import(strToBin($summedAnswers));
     $answers = [0]; // Put 0 in position 0 so the broken out answers correspond with the option numbers, which start at 1
     for($i = 0; $i < $numOptions; $i++) {
