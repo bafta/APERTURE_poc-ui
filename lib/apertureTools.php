@@ -47,26 +47,3 @@ function toFD(string $summedAnswers, int $numOptions): array {
     return $answers;
 }
 
-// Not needed? Think this will be handled by the answer aggregating function?
-function fromFD($answers) {
-    $answers = array_reverse($answers);
-    $packedAnswers = 0;
-    foreach($answers as $answer) {
-        $packedAnswers << BITS_PER_ANSWER;
-        $packedAnswers += $answer;
-    }
-    return $packedAnswers;
-}
-
-// TODO how are we storing the master paillier encryption key?
-function getEncryptedSum($userIds, $questionId) {
-    global $DB;
-    $encUserAnswers = $DB->getColumn('
-        SELECT answer
-        FROM answer
-        WHERE questionId = ? AND optionNum = 0 AND userId IN (?)
-    ', $questionId, $userIds);
-    $encSum = pal_add_array(MASTER_PAL_ENC_KEY, $encUserAnswers);
-
-    return $encSum;
-}
