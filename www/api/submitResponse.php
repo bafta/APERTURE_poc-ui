@@ -3,6 +3,9 @@
 $EXPECTED_API_REQUEST_PARAMETERS = [
     'validatedQuestionIds', 'answers'
 ];
+// The body is a stream of newline-delimited JSON progress frames. Set before
+// requiring apertureApiTools so it also applies to any parse-error response.
+header('Content-Type: application/x-ndjson');
 require_once('../../lib/prdl/startup.php');
 require_once(LIB_DIR.'/apertureApiTools.php');
 
