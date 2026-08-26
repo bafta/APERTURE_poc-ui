@@ -1,0 +1,30 @@
+# Response to the 2026-08-26 Security Review
+
+**Date:** 2026-08-26
+
+All findings in [security_review_20260826.md](security_review_20260826.md) have been addressed, one commit per finding on `main`. Every fix was verified with a live reproduction against the Paillier extension (or, for the frontend, a rebuilt bundle); all PHP files lint clean; and a two-user end-to-end aggregation round-trips correctly after the changes. This document maps each finding to its resolution.
+
+## Findings
+
+| Finding | Severity | Resolution | Commit |
+|---|---|---|---|
+| **A1** — unbounded `optionNum` → unauthenticated CPU-exhaustion DoS | High | Fixed together with A2: `EncryptedAnswerArray::fromArray` (the seam where untrusted client answers enter — the server's own packed `optionNum = 0` row is appended directly, bypassing it) now requires each `optionNum` to be an integer in `1..MAX_OPTIONS` (128) and caps answers per question; `normaliseAnswers` caps questions per request. Malicious `optionNum` values are rejected before any `pal_multiply` runs. | `36b3f04` |
+| **A2** — client `optionNum = 0` bypasses server packing | High | Fixed by the same `1..MAX_OPTIONS` bound: a client can no longer submit its own `optionNum = 0` ciphertext, so the packed aggregate row is generated server-side only. Verified: the previous bypass (which stored an attacker-chosen `[_,65535,65535]`) is now rejected. | `36b3f04` |
+| **B1** — post-validation key names injectable through the request parser | Medium | Fixed: the catch-all passthrough was removed, so `getRequestParameters` is now a strict allowlist of accepted input names (`userToken`, `questionIds`, `searchCriteria`, `answers`). An injected `validatedQuestionIds`/`userId` is dropped rather than copied into the trusted namespace, so the question-ID gate can't be bypassed even once its signature check is re-enabled. | `86959be` |
+| **A3** — no plaintext range enforcement (non-0/1 values) | Medium (design) | Documented, per decision: preventing a dishonest client from encrypting non-0/1 values requires client-supplied zero-knowledge range/ballot proofs, which are out of scope for the POC (there is no server-only mitigation, as the server never sees plaintext). Recorded alongside the other known POC boundaries in the README and CLAUDE.md. | `f004230` |
+| **A5** — negative/overflowed decrypt silently mis-unpacked | Low | Fixed: `toFD` now detects a negative decrypt (leading `-` on the base36 string, before `gmp_export` drops the sign) and fails closed instead of unpacking garbage. | `9025eb9` |
+| **B2** — dead `__missing` check; malformed params throw uncaught `TypeError` (500) | Low | Fixed: `getRequestParameters` now throws a 400 listing any missing required params (wiring up the dead check); `validateUser`/`validateQuestionIds` reject non-strings with a clean 400 instead of a `TypeError`; and the include-time parse is wrapped so any exception becomes a controlled JSON error rather than an uncaught fatal. This also upgraded the A1/A2 rejections (which run at parse time) from uncaught 500 to a clean 400. | `9578644` |
+| **C1** — `strToBin` base36/base64 disambiguation is heuristic | Low | Fixed: the base36 branch now requires the lowercase `^-?[0-9a-z]+$` charset the extension actually emits, so a standard-base64 ciphertext (upper-case, `+`, `/`, `=`) is decoded as base64 rather than misread as base36. A base64 value made purely of `[0-9a-z]` would still collide, but that is astronomically unlikely for a real ciphertext. | `423e39d` |
+| **D1** — `json_encode` into `<script>` without `JSON_HEX_*` flags | Low | Fixed: both inline-script `json_encode` calls in `questionnaire.php` now use `JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`, making the sink safe by construction if question/option text ever becomes user- or import-writable. | `a5418da` |
+| **D2** — installer interpolates `dbName`/`dbUsername` into shell/SQL | Low | Fixed: `install.php` validates both against `^[A-Za-z0-9_]+$` before passing them to PRDL's `upgradeDb`, which interpolates them into `mysql -e` shell commands. | `226dfb9` |
+| **E1** — `NaN` userId bypasses the client-side guard | Low | Fixed: the submission guard now rejects anything that isn't a positive integer (`!Number.isInteger(userId) || userId <= 0`). | `7beb31f` |
+| **E2** — injected public key used with no validation | Low | Fixed: `setEncKey` rejects a non-positive or implausibly short (<2048-bit) modulus, and `App.svelte` catches the failure and shows a clear message instead of silently producing undecryptable ciphertexts. | `7beb31f` |
+| **E3** — submission stream has no timeout, size cap, or error catch | Low | Fixed: added a 30 s `AbortSignal.timeout`, a `res.ok` check, a 1 MB buffer cap, a decoder flush, `reader.cancel()` in a `finally`, and network/interruption error handling in both `saveAnswers` and `handleSave`. | `7beb31f` |
+| **F1** — sodium key-at-rest scheme is self-defeating | Info | No change: the scheme protects the libsodium signing key, which is unused in the POC, so it is irrelevant to the stated purpose. Noted only so the pattern is never carried into production key management. | — |
+| **F2** — missing `Content-Type` on the stream; sourcemaps; Google Fonts | Info | Partially addressed: `submitResponse.php` now declares `application/x-ndjson`. The production sourcemaps and the external Google Fonts import are left as acceptable for an open POC. | `094a019` |
+
+## Notes
+
+- **Root cause.** A1 and A2 shared one root cause — `EncryptedAnswer` performed no validation of the client-supplied `optionNum` — and were closed by a single bounds check at the untrusted-input seam.
+- **Scope.** A3 is the one finding that is a limitation of the POC's deliberately reduced scope rather than an implementation defect; it is now documented rather than left implicit. Everything else was a defect in the implemented functionality and has been fixed.
+- **Verification.** The overall verdict of the review stands after the fixes: the honest-path implementation is sound, and the adversarial-input handling on the submission endpoint — previously the weak area — is now bounded and validated.
