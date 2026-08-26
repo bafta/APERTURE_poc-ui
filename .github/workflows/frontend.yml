@@ -1,0 +1,50 @@
+name: Frontend build
+
+# Rebuilds the Svelte bundle whenever the frontend source changes and commits
+# the built files (lib/fe/dist/assets/) back to the repo, so a fresh clone
+# works without needing a local npm build.
+#
+# The bot commit only touches files matched by the paths filter below, but a
+# rebuild of the committed output produces no diff, so the workflow cannot
+# loop; [skip ci] in the commit message stops the retrigger sooner anyway.
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["lib/fe/**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lib/fe/package-lock.json
+
+      - name: Install dependencies
+        working-directory: lib/fe
+        run: npm ci
+
+      - name: Build bundle
+        working-directory: lib/fe
+        run: npm run build
+
+      - name: Commit built files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f lib/fe/dist/assets/bundle.js lib/fe/dist/assets/main.css
+          if git diff --cached --quiet; then
+            echo 'Built files unchanged - nothing to commit'
+          else
+            git commit -m 'Rebuild frontend bundle [skip ci]'
+            git push
+          fi
