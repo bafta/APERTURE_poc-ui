@@ -31,11 +31,11 @@ The PHP backend requires the `pal_*` Paillier extension functions and libsodium.
 ## Architecture
 
 ### Three-Tier Service Design
-The architecture separates concerns across three logical services (currently all in one codebase but designed to be split):
+The production architecture separates concerns across three logical services. Only the first is implemented in this POC; the other two are design-only (no code):
 
-1. **Data Server** (`www/api/submitResponse.php`, `requestStatistic.php`) — stores and aggregates encrypted answers; never holds the decryption key
-2. **User Server** (`www/api/lookupCohort.php`) — manages user identities and cohort membership
-3. **Key Guardian** (`www/api/requestTranscription.php`) — holds the master Paillier private key; decrypts aggregated sums and re-encrypts with the requester's public key
+1. **Data Server** (`www/api/submitResponse.php`, `www/api/testResults.php`) — stores and aggregates encrypted answers; in production it would never hold the decryption key, though in the POC it decrypts aggregates directly using the test keys
+2. **User Server** (design only) — manages user identities and cohort membership
+3. **Key Guardian** (design only) — holds the master Paillier private key; decrypts aggregated sums and re-encrypts with the requester's public key
 
 ### Cryptographic Flow
 ```
