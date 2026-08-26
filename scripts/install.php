@@ -45,6 +45,14 @@ if(!defined('PRODUCT') || strtoupper(PRODUCT) != 'APERTURE') {
     ).".\n");
 }
 
+// upgradeDb() interpolates the database name and user into shell (mysql -e ...)
+// and SQL commands, so constrain them to a safe identifier charset before use.
+foreach(['dbName', 'dbUsername'] as $prdlKey) {
+    if(empty($PRDL_CONFIG[$prdlKey]) || !preg_match('/^[A-Za-z0-9_]+$/', $PRDL_CONFIG[$prdlKey])) {
+        die("ERROR: config value '$prdlKey' must be a non-empty identifier matching [A-Za-z0-9_].\n");
+    }
+}
+
 // We use /www/logs as the reference to get permissions and ownership from
 define('PERMISSIONS_REFERENCE_DIR', '/www/logs');
 
