@@ -67,7 +67,9 @@ function getRequestParameters() {
 }
 
 global $API_REQUEST_PARAMETERS;
-$API_REQUEST_PARAMETERS = getRequestParameters();
+if(!($NO_REQUEST_PARAMETERS ?? false)) {
+    $API_REQUEST_PARAMETERS = getRequestParameters();
+}
 
 /**
  * @param $userToken string "userId;createTime;HMAC"
