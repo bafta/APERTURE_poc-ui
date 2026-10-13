@@ -121,6 +121,7 @@ This is a proof of concept. Several production concerns are intentionally simpli
 
 - User token HMAC verification and expiry checking are disabled
 - Request and key signing (libsodium signatures over requester keys and request bodies, verified against the master signing key) is designed but not implemented — API inputs are trusted as-is
+- Submitted answers are not proven to encrypt a valid 0/1 vote. Because encryption is client-side with the public key, a dishonest client can encrypt any value and bias or corrupt the aggregate. Enforcing this requires client-supplied zero-knowledge range/ballot proofs verified server-side, which are out of scope for this POC — there is no server-only mitigation, since the server never sees plaintext
 - Master Paillier keys are loaded from a test file rather than secure storage
 - Only the Data Server service is implemented; the User Server and Key Guardian are design-only, so decryption happens in the same codebase that stores the ciphertexts
 - Error responses are generic

@@ -13,7 +13,7 @@ require_once(LIB_DIR.'/apertureApiTools.php');
     </head>
     <body>
         <script>
-            const publicKeyData = <?= json_encode(getJSEncryptionKeyNumbers()) ?>;
+            const publicKeyData = <?= json_encode(getJSEncryptionKeyNumbers(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
             <?
             $DB->returnHash();
             $questionData = $DB->getRows('SELECT id, question, type FROM question ORDER BY id');
@@ -26,7 +26,7 @@ require_once(LIB_DIR.'/apertureApiTools.php');
                     ORDER BY num
                 ', $qd['id']);
             }
-            echo "\nconst questionData = ".json_encode($questionData).";\n";
+            echo "\nconst questionData = ".json_encode($questionData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT).";\n";
             ?>
         </script>
 
