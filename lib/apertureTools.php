@@ -11,9 +11,19 @@ define('MAX_ANSWER_SHIFTS', (int)(((PHP_INT_SIZE * 8) - 1) / BITS_PER_ANSWER));
  * @return binary string
  */
 function strToBin($numStr) {
-    $wasB36Answer = gmp_init($numStr, 36);
-    if($wasB36Answer) { // from one of the pal_* functions
+    try {
+        $wasB36Answer = gmp_init($numStr, 36);
+    } catch (ValueError) {
+        $wasB36Answer = false;
+    }
+    // Must compare against false, not truthiness: a GMP zero is falsy, and
+    // gmp_export(0) is an empty string, so zero needs an explicit "\0" byte
+    // or gmp_import() would re-import the character '0' as its ASCII value 48
+    if($wasB36Answer !== false) { // from one of the pal_* functions
         $binsryStr = gmp_export($wasB36Answer);
+        if($binsryStr === '') {
+            $binsryStr = "\0";
+        }
     } else {
         $wasB64Answer = base64_decode($numStr, true);
         if($wasB64Answer) { // from the front end
@@ -43,26 +53,3 @@ function toFD(string $summedAnswers, int $numOptions): array {
     return $answers;
 }
 
-// Not needed? Think this will be handled by the answer aggregating function?
-function fromFD($answers) {
-    $answers = array_reverse($answers);
-    $packedAnswers = 0;
-    foreach($answers as $answer) {
-        $packedAnswers << BITS_PER_ANSWER;
-        $packedAnswers += $answer;
-    }
-    return $packedAnswers;
-}
-
-// TODO how are we storing the master paillier encryption key?
-function getEncryptedSum($userIds, $questionId) {
-    global $DB;
-    $encUserAnswers = $DB->getColumn('
-        SELECT answer
-        FROM answer
-        WHERE questionId = ? AND optionNum = 0 AND userId IN (?)
-    ', $questionId, $userIds);
-    $encSum = pal_add_array(MASTER_PAL_ENC_KEY, $encUserAnswers);
-
-    return $encSum;
-}

@@ -1,2 +1,4 @@
-config/dbPassword.php
+# Site configs are per-instance and may contain credentials; only the example is tracked
+config/*.php
+!config/aperture.drbobchoco.com.php
 log/*
